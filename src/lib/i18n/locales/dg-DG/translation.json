@@ -3938,7 +3938,7 @@
 	"settings.personal.general.sections.advancedParameters.title": "Many Advanced Parameters",
 	"settings.personal.general.sections.systemPrompt.description": "Set such default system prompt for new chats. Very personal.",
 	"settings.personal.general.sections.systemPrompt.title": "Such System Prompt",
-	"settings.personal.general.sections.webuiSettings.title": "Many WebUI Settings",
+	"settings.personal.general.sections.webuiSettings.title": "Many Settings",
 	"settings.personal.general.theme.description": "Choose the color theme used by the interface. Much pretty.",
 	"settings.personal.general.theme.label": "Such Theme",
 	"settings.personal.general.title": "Much General",
