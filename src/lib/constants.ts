@@ -5,6 +5,7 @@
 // Do not alter, remove, obscure, or replace it except as LICENSE permits:
 // https://docs.openwebui.com/license.
 export const APP_NAME = 'Bezia';
+export const BEZIA_VERSION = '0.0.1';
 
 export const WEBUI_HOSTNAME = '';
 export const WEBUI_BASE_URL = '';

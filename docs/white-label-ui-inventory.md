@@ -421,9 +421,9 @@ The following sequence is recommended for safe, progressive UI customization:
 
 ## Task 01 Implementation Status — Complete
 
-**Task identifier:** Task 01  
-**New application name:** Bezia  
-**Status:** Complete  
+**Task identifier:** Task 01
+**New application name:** Bezia
+**Status:** Complete
 
 ### Modified Source Files
 
@@ -474,6 +474,68 @@ The following UI branding elements were **not** modified as part of Task 01 and 
 Modified application source files:
 - `src/lib/constants.ts`
 - `backend/open_webui/env.py`
+
+Modified documentation:
+- `docs/white-label-ui-inventory.md`
+
+No Docker, deployment, LiteLLM, authentication, database, or production configuration was modified.
+
+
+## Task 02 Implementation Status — Complete
+
+**Task identifier:** Task 02
+**Status:** Complete
+
+### Modified Source Files
+
+| File | Change |
+|------|--------|
+| `src/lib/constants.ts` | Added `export const BEZIA_VERSION = '0.0.1';` next to `APP_NAME` |
+| `src/lib/components/chat/Settings/General.svelte` | Removed translation-help message and link (lines 195–209) |
+| `src/lib/components/chat/Settings/About.svelte` | Simplified to display only `${WEBUI_NAME} Version` and `BEZIA_VERSION` |
+
+### Changes Detail
+
+#### BEZIA_VERSION Constant (`src/lib/constants.ts`)
+Added a dedicated, independently configurable version constant:
+```ts
+export const BEZIA_VERSION = '0.0.1';
+```
+
+This constant is separate from the upstream Open WebUI technical versioning (`WEBUI_VERSION`, `WEBUI_BUILD_CHANNEL`, etc.), which remains unchanged.
+
+#### General Settings Simplification (`src/lib/components/chat/Settings/General.svelte`)
+Removed the translation-help message block:
+- Removed the `Couldn't find your language?` message
+- Removed the link to `https://github.com/open-webui/open-webui/blob/main/docs/CONTRIBUTING.md#-translations-and-internationalization`
+- The Language selector and all other General Settings options remain fully functional
+
+#### About Page Simplification (`src/lib/components/chat/Settings/About.svelte`)
+Simplified to display only:
+- **About** (page title)
+- **Bezia Version** (section title using `$WEBUI_NAME`)
+- **0.0.1** (version value from `BEZIA_VERSION`)
+
+Removed content:
+- Version/build information (`v0.13.4 (unknown build)`)
+- Update check functionality (`See what's new`, version check links/buttons)
+- Community section (Discord, X/Twitter, GitHub links)
+- Credits and attribution (Twemoji, Copyright, Open WebUI Inc., All rights reserved, Tim J. Baek)
+
+The About tab and navigation remain functional.
+
+### Preserved Architecture
+- Upstream technical versioning remains unchanged (`WEBUI_VERSION`, `WEBUI_BUILD_CHANNEL`, etc.)
+- Backend version API responses remain unchanged
+- i18n translation files remain unchanged
+- All LICENSE files and third-party notices remain unchanged
+
+### Git Status
+
+Modified application source files:
+- `src/lib/constants.ts`
+- `src/lib/components/chat/Settings/General.svelte`
+- `src/lib/components/chat/Settings/About.svelte`
 
 Modified documentation:
 - `docs/white-label-ui-inventory.md`
