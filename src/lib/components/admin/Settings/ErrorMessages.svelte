@@ -120,7 +120,13 @@
 		}
 	];
 
-	let errorMessages: Record<string, { en: string; fa: string }> = {};
+	let errorMessages: Record<string, { en: string; fa: string }> = (() => {
+		const d: Record<string, { en: string; fa: string }> = {};
+		for (const cat of ERROR_CATEGORIES) {
+			d[cat.key] = { en: cat.defaultEn, fa: cat.defaultFa };
+		}
+		return d;
+	})();
 	let savedConfig: Record<string, { en: string; fa: string }> | null = null;
 	let saving = false;
 
@@ -135,11 +141,39 @@
 
 	const loadConfig = async () => {
 		const cfg = $config?.ui?.error_messages;
+		const initialized: Record<string, { en: string; fa: string }> = {};
+
+		// Copy backend config entries where they have valid structure
 		if (cfg && typeof cfg === 'object' && !Array.isArray(cfg)) {
-			errorMessages = { ...cfg };
-		} else {
-			errorMessages = {};
+			for (const [key, value] of Object.entries(cfg)) {
+				if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+					initialized[key] = {
+						en: typeof value.en === 'string' ? value.en : '',
+						fa: typeof value.fa === 'string' ? value.fa : ''
+					};
+				}
+			}
 		}
+
+		// Ensure every known category has writable en/fa properties,
+		// falling back to defaults when missing or invalid
+		for (const cat of ERROR_CATEGORIES) {
+			if (!initialized[cat.key]) {
+				initialized[cat.key] = {
+					en: cat.defaultEn,
+					fa: cat.defaultFa
+				};
+			} else {
+				if (typeof initialized[cat.key].en !== 'string') {
+					initialized[cat.key].en = cat.defaultEn;
+				}
+				if (typeof initialized[cat.key].fa !== 'string') {
+					initialized[cat.key].fa = cat.defaultFa;
+				}
+			}
+		}
+
+		errorMessages = initialized;
 		savedConfig = structuredClone(errorMessages);
 	};
 
@@ -225,7 +259,7 @@
 								{$i18n.t('settings.admin.errorMessages.fields.persian.label')}
 							</label>
 							<Textarea
-								bind:value={errorMessages[category.key]?.fa ?? ''}
+								bind:value={errorMessages[category.key].fa}
 								placeholder={category.defaultFa}
 								maxSize={500}
 								className="w-full"
@@ -236,7 +270,7 @@
 								{$i18n.t('settings.admin.errorMessages.fields.english.label')}
 							</label>
 							<Textarea
-								bind:value={errorMessages[category.key]?.en ?? ''}
+								bind:value={errorMessages[category.key].en}
 								placeholder={category.defaultEn}
 								maxSize={500}
 								className="w-full"
