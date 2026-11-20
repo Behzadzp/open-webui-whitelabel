@@ -58,6 +58,7 @@
 	import AdminVideos from '$lib/components/admin/Settings/Videos.svelte';
 	import AdminPipelines from '$lib/components/admin/Settings/Pipelines.svelte';
 	import AdminDatabase from '$lib/components/admin/Settings/Database.svelte';
+	import AdminErrorMessages from '$lib/components/admin/Settings/ErrorMessages.svelte';
 
 	const i18n: Writable<any> = getContext('i18n');
 
@@ -173,7 +174,8 @@
 		'admin:pipelines': $i18n.t('Tools'),
 		'admin:evaluations': $i18n.t('Quality'),
 		'admin:analytics': $i18n.t('Quality'),
-		'admin:db': $i18n.t('Data')
+		'admin:db': $i18n.t('Data'),
+		'admin:error-messages': $i18n.t('System')
 	};
 	const settingGroupTitle = (tabId: string) =>
 		(isAdminTab(tabId) ? adminSettingGroups[tabId] : personalSettingGroups[tabId]) ??
@@ -363,6 +365,12 @@
 			titleKey: 'settings.admin.db.title',
 			title: $i18n.t('settings.admin.db.title'),
 			searchPrefixes: ['settings.admin.db.']
+		},
+			{
+				id: 'admin:error-messages',
+				titleKey: 'settings.admin.errorMessages.title',
+				title: $i18n.t('settings.admin.errorMessages.title'),
+				searchPrefixes: ['settings.admin.errorMessages.']
 		}
 	];
 	let availableSettings: SettingsTab[] = [];
@@ -902,6 +910,8 @@
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
+			{:else if selectedTab === 'admin:error-messages'}
+				<AdminErrorMessages />
 			{:else if selectedTab === 'admin:pipelines'}
 				<AdminPipelines
 					saveHandler={() => {

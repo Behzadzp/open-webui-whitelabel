@@ -756,3 +756,79 @@ async def get_banners(
     user=Depends(get_verified_user),
 ):
     return await Config.get('ui.banners')
+
+
+# Error Messages Config
+
+
+class ErrorMessagesForm(BaseModel):
+    messages: dict[str, dict[str, str]]
+
+
+VALID_ERROR_CATEGORIES = {
+    'rate_limit',
+    'budget_exceeded',
+    'model_unavailable',
+    'authentication_error',
+    'permission_error',
+    'provider_error',
+    'timeout',
+    'connection_error',
+    'context_length_exceeded',
+    'content_policy',
+    'generic_error',
+}
+
+VALID_LANGUAGE_KEYS = {'en', 'fa'}
+
+
+def _validate_error_messages(messages: dict) -> None:
+    """Validate error messages payload structure.
+
+    Raises ValueError if the payload is invalid.
+    """
+    if not isinstance(messages, dict):
+        raise ValueError('messages must be an object')
+
+    for category, lang_messages in messages.items():
+        if category not in VALID_ERROR_CATEGORIES:
+            raise ValueError(f'Unknown error category: {category}')
+        if not isinstance(lang_messages, dict):
+            raise ValueError(f'Messages for {category} must be an object')
+        for lang_key, message in lang_messages.items():
+            if lang_key not in VALID_LANGUAGE_KEYS:
+                raise ValueError(f'Invalid language key: {lang_key}')
+            if not isinstance(message, str):
+                raise ValueError(f'Message for {category}.{lang_key} must be a string')
+
+
+@router.post('/error-messages', response_model=dict)
+async def set_error_messages(
+    request: Request,
+    form_data: ErrorMessagesForm,
+    user=Depends(get_admin_user),
+):
+    try:
+        _validate_error_messages(form_data.messages)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    await Config.upsert({'ui.error_messages': form_data.messages})
+    await publish_event(
+        request,
+        EVENTS.CONFIG_UPDATED,
+        actor=user,
+        subject_id='ui.error_messages',
+        subject_type='config',
+        data={'keys': ['ui.error_messages']},
+    )
+    return {'messages': form_data.messages}
+
+
+@router.get('/error-messages', response_model=dict)
+async def get_error_messages(
+    request: Request,
+    user=Depends(get_verified_user),
+):
+    messages = await Config.get('ui.error_messages')
+    return {'messages': messages or {}}

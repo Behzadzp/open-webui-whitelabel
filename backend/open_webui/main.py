@@ -2427,6 +2427,7 @@ async def get_app_config(request: Request):
         'ui.pending_user_overlay_title',
         'ui.pending_user_overlay_content',
         'ui.watermark',
+        'ui.error_messages',
     )
 
     return {
@@ -2587,6 +2588,7 @@ async def get_app_config(request: Request):
                     'pending_user_overlay_content': config.get('ui.pending_user_overlay_content'),
                     'response_watermark': config.get('ui.watermark'),
                     'iframe_csp': IFRAME_CSP,
+                    'error_messages': config.get('ui.error_messages'),
                 },
                 'license_metadata': license_metadata,
                 **(

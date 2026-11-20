@@ -152,6 +152,7 @@
 	import { createOpenAITextStream } from '$lib/apis/streaming';
 	import { getFunctions } from '$lib/apis/functions';
 	import { initiateOAuthRedirect } from '$lib/apis/configs';
+	import { getMappedMessage, mapError } from '$lib/utils/error-mapper';
 
 	import Banner from '../common/Banner.svelte';
 	import MessageInput from '$lib/components/chat/MessageInput.svelte';
@@ -5196,20 +5197,15 @@
 		).catch(async (error) => {
 			console.log(error);
 
-			let errorMessage = error;
-			if (error?.error?.message) {
-				errorMessage = error.error.message;
-			} else if (error?.message) {
-				errorMessage = error.message;
-			}
+			const { message: errorMessage } = mapError(
+				error,
+				$i18n.language,
+				$config?.ui?.error_messages
+			);
 
-			if (typeof errorMessage === 'object') {
-				errorMessage = $i18n.t(`Uh-oh! There was an issue with the response.`);
-			}
-
-			toast.error(`${errorMessage}`);
+			toast.error(errorMessage);
 			responseMessage.error = {
-				content: error
+				content: errorMessage
 			};
 
 			responseMessage.done = true;
@@ -5320,7 +5316,11 @@
 
 	const handleOpenAIError = (error, responseMessage) => {
 		const responseFailed = responseMessage.done && responseMessage.error;
-		const errorMessage = getErrorMessage(error, $i18n.t('Server connection failed'));
+		const { message: errorMessage } = mapError(
+			error,
+			$i18n.language,
+			$config?.ui?.error_messages
+		);
 		responseMessage.error = { content: errorMessage };
 		responseMessage.done = true;
 		if (responseMessage.statusHistory) {
