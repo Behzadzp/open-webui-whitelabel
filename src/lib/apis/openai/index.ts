@@ -390,11 +390,15 @@ export const generateOpenAIChatCompletion = async (
 		body: JSON.stringify(body)
 	})
 		.then(async (res) => {
-			if (!res.ok) throw await res.json();
+			if (!res.ok) {
+				const errBody = await res.json();
+				errBody.status = res.status;
+				throw errBody;
+			}
 			return res.json();
 		})
 		.catch((err) => {
-			error = getErrorMessage(err);
+			error = err;
 			return null;
 		});
 

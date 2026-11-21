@@ -1957,7 +1957,8 @@
 				} else if (type === 'chat:message:error') {
 					const responseCompleted = message.done;
 					if (event.shared) {
-						message.error = data.error;
+						message.content = '';
+						message.error = true;
 						message.done = true;
 					} else handleOpenAIError(data.error, message);
 					if (!event.shared && !responseCompleted) {
@@ -2213,7 +2214,7 @@
 					for (const message of Object.values(history.messages) as any[]) {
 						if (message.role === 'assistant' && !message.done) {
 							message.done = true;
-							message.error = { content: $i18n.t('Connection lost. Please retry.') };
+							message.error = true;
 						}
 					}
 				}
@@ -3781,9 +3782,15 @@
 			session_id: $socket?.id,
 			id: responseMessageId
 		}).catch((error) => {
-			toast.error(`${error}`);
+			const { message: errorMessage } = mapError(
+				error,
+				$i18n.language,
+				$config?.ui?.error_messages
+			);
+			toast.error(errorMessage);
 			if ($chatId === _chatId && history.messages[responseMessageId]) {
-				history.messages[responseMessageId].error = { content: error };
+				history.messages[responseMessageId].content = '';
+				history.messages[responseMessageId].error = true;
 			}
 			return null;
 		});
@@ -3822,7 +3829,6 @@
 			await refreshChatList(localStorage.token);
 		}
 	};
-
 	const getChatEventEmitter = async (modelId: string, chatId: string = '') => {
 		return setInterval(() => {
 			$socket?.emit('usage', {
@@ -3997,8 +4003,11 @@
 		const { id, done, choices, content, output, sources, selected_model_id, error, usage } = data;
 
 		if (error) {
-			if (shared) message.error = error;
-			else handleOpenAIError(error, message);
+			if (shared) {
+				message.content = '';
+				message.error = true;
+				message.done = true;
+			} else handleOpenAIError(error, message);
 		}
 
 		// Store raw OR-aligned output items from backend
@@ -5204,14 +5213,17 @@
 			);
 
 			toast.error(errorMessage);
-			responseMessage.error = {
-				content: errorMessage
-			};
-
+			// Preserve partial assistant content; clear empty placeholder messages
+			if (
+				!responseMessage.content ||
+				!responseMessage.content.trim() ||
+				responseMessage.content.startsWith('[RESPONSE]')
+			) {
+				responseMessage.content = '';
+			}
+			responseMessage.error = true;
 			responseMessage.done = true;
-
 			history.messages[responseMessageId] = responseMessage;
-			history.currentId = responseMessageId;
 
 			return null;
 		});
@@ -5321,7 +5333,15 @@
 			$i18n.language,
 			$config?.ui?.error_messages
 		);
-		responseMessage.error = { content: errorMessage };
+		// Preserve partial assistant content; clear empty placeholder messages
+		if (
+			!responseMessage.content ||
+			!responseMessage.content.trim() ||
+			responseMessage.content.startsWith('[RESPONSE]')
+		) {
+			responseMessage.content = '';
+		}
+		responseMessage.error = true;
 		responseMessage.done = true;
 		if (responseMessage.statusHistory) {
 			responseMessage.statusHistory = responseMessage.statusHistory.filter(

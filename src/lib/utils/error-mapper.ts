@@ -304,6 +304,14 @@ export const classifyError = (
 			return 'budget_exceeded';
 		}
 
+		// LiteLLM rate-limit fallback — recognize rate-limit messages even
+		// when HTTP status is unavailable (e.g., error was reduced to a string).
+		if (
+			messageContains(message, 'rate limit exceeded')
+		) {
+			return 'rate_limit';
+		}
+
 		// Context length exceeded
 		if (
 			resolvedStatus &&

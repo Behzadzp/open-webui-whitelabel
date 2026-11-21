@@ -826,6 +826,76 @@ Permission-related message signals take precedence over generic authentication t
 
 ---
 
+
+---
+
+### Implementation Status — Bug A (LiteLLM TPM/RPM Classification)
+
+**Status:** FIXED
+
+**Changes made:**
+
+1. `src/lib/apis/openai/index.ts` — `generateOpenAIChatCompletion()`:
+   - Previously: `!res.ok` threw `await res.json()` directly, discarding HTTP status
+   - Now: Parses error body, attaches `errBody.status = res.status`, then throws the structured error object
+   - The catch block stores the full error object (with `.status`) instead of converting to plain string via `getErrorMessage()`
+
+2. `src/lib/utils/error-mapper.ts` — `classifyError()`:
+   - Added rate-limit message-pattern fallback: messages containing "rate limit exceeded" are classified as `rate_limit`
+   - Serves as a safety net when HTTP status is unavailable (e.g., error reduced to a string)
+
+3. `src/lib/components/chat/Chat.svelte` — `handleOpenAIError()`:
+   - Currently marks errors in-memory only during initial request failure
+   - Mapped messages do not persist to the database; raw error detail is stored instead
+   - (Render-time re-mapping fix documented under Bug B)
+
+**How HTTP status is preserved:**
+- `generateOpenAIChatCompletion()` catches the HTTP error response, extracts `res.json()`, sets `errBody.status = res.status`, then throws
+- The error object reaches `classifyError()` with `.status = 429`
+- `classifyError()` step 3 matches `resolvedStatus === 429` → returns `rate_limit`
+
+**How TPM/RPM errors are classified:**
+- Primary signal: HTTP status 429 → `rate_limit` (via `getStatus()` from `error.status`)
+- Fallback signal: message contains "rate limit exceeded" → `rate_limit`
+- Budget messages still match first (`budget_exceeded` check comes before rate-limit fallback)
+- Other 429 messages without rate-limit patterns still return `rate_limit` via step 3 status check
+
+---
+
+### Implementation Status — Bug B (Raw Error Reappears After Refresh)
+
+**Status:** INVESTIGATED — NOT FIXED (source code changes not made during this task)
+
+**Root cause (confirmed from source inspection):**
+
+1. `src/lib/components/chat/Messages/Error.svelte` — `getErrorMessage()` extracts raw error text from `message.error.content` and displays it directly. It does not call `mapError()` or re-classify the error. Historical messages (loaded from DB after refresh) contain raw upstream error detail, so the raw message is shown.
+
+2. `src/lib/components/chat/Chat.svelte` — `handleOpenAIError()` maps errors in-memory during initial request failure and stores `{ content: friendlyMessage }` in `responseMessage.error`. The mapped message is also pushed to the backend for persistence. However, on page refresh, `loadChat()` reads persisted messages from the database, which contain the raw error detail. `Error.svelte` displays this raw content without re-mapping.
+
+3. Backend persistence: `generate_chat_completion()` in `backend/open_webui/routers/openai.py` stores the raw upstream error as-is in the message object. The raw error detail reaches the database unchanged.
+
+**Root cause difference:**
+- Initial display: `handleOpenAIError()` calls `mapError()` → friendly message shown
+- Chat message before refresh: In-memory `responseMessage.error.content` holds the mapped message
+- Chat message after refresh: `loadChat()` reads raw persisted error from DB → `Error.svelte` displays raw detail
+
+**Recommended fix (not implemented during this task):**
+
+Modify `src/lib/components/chat/Messages/Error.svelte` to:
+1. Import `mapError` from `$lib/utils/error-mapper`, `i18n` from `$lib/i18n`, `config` from `$lib/stores`
+2. Add render-time re-mapping: extract raw error text from `content`, call `mapError()` with current language and admin-configured messages
+3. Add a `mapped` flag to prevent double-mapping of already-mapped errors
+4. Update `ResponseMessage.svelte` to pass `mapped={message?.error?.mapped}`
+5. Update `Chat.svelte` error assignments (`handleOpenAIError`, catch block, Connection lost) to set `{ content: friendlyMessage, mapped: true }`
+
+**Raw diagnostic retention:**
+- Raw error detail should remain in database `message.error.content` (not overwritten)
+- Backend diagnostic logging via `publish_model_provider_request_failed()` unchanged
+- Only the user-facing display path is mapped
+
+---
+
+
 ## Document Path
 
 `/projects/open-webui-whitelable/open-webui-whitelabel/docs/ai-error-message-management-plan.md`

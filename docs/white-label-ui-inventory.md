@@ -180,8 +180,8 @@ The following table lists all image and visual assets related to Open WebUI bran
 | IMG-006 | Main logo | `static/static/logo.png` | PNG | 500x500 | PWA manifest icons | `backend/open_webui/main.py` (lines 3061, 3067) | Yes |
 | IMG-007 | Splash screen (light) | `static/static/splash.png` | PNG | 500x500 | App splash screen | `src/app.html` (lines 89, 122, 175) | Yes |
 | IMG-008 | Splash screen (dark) | `static/static/splash-dark.png` | PNG | 500x500 | App splash screen (dark mode) | `src/app.html` (lines 88–90, 122) | Yes |
-| IMG-009 | PWA icon 192x192 | `static/static/web-app-manifest-192x192.png` | PNG | 192x192 | PWA manifest (static site.webmanifest) | `static/static/site.webmanifest` (lines 6–10) | Yes |
-| IMG-010 | PWA icon 512x512 | `static/static/web-app-manifest-512x512.png` | PNG | 512x512 | PWA manifest (static site.webmanifest) | `static/static/site.webmanifest` (lines 11–16) | Yes |
+| IMG-009 | PWA icon 192x192 | `static/static/web-app-manifest-192x192.png` | PNG | 192x192 | PWA manifest (static site.webmanifest — not referenced by application code) | `static/static/site.webmanifest` (lines 6–10) | Yes |
+| IMG-010 | PWA icon 512x512 | `static/static/web-app-manifest-512x512.png` | PNG | 512x512 | PWA manifest (static site.webmanifest — not referenced by application code) | `static/static/site.webmanifest` (lines 11–16) | Yes |
 | IMG-011 | Welcome video | `static/assets/welcome.mp4` | MP4 | Unknown | Onboarding background video | `src/lib/components/OnBoarding.svelte` (line 59) | Yes (same filename) |
 | IMG-012 | Welcome poster | `static/assets/welcome.webp` | WEBP | 1280x720 | Onboarding video poster | `src/lib/components/OnBoarding.svelte` (line 65) | Yes (same filename) |
 | IMG-013 | User placeholder image | `static/user.png` | PNG | Unknown | Default user avatar | Various components referencing user.png | Yes |
@@ -392,20 +392,13 @@ The following sequence is recommended for safe, progressive UI customization:
 
 1. **Image dimensions for some assets:** Could not programmatically determine dimensions for `favicon.ico`, `user.png`, `image-placeholder.png`, `welcome.mp4`. The `file` command was not available in the environment.
 
-2. **PWA manifest dual sources:** There are two PWA-related manifests:
-   - `static/static/site.webmanifest` (static file, references `web-app-manifest-*.png`)
-   - Backend-generated manifest at `/api/v1/config` (dynamic, uses `WEBUI_NAME` and `logo.png`)
-   - Need to confirm which one is actually served/used in production.
+2. **PWA manifest dual sources:** Verified — the active manifest is the backend-generated `/manifest.json` route (`backend/open_webui/main.py` line 3029). The static file `static/static/site.webmanifest` exists but is **not referenced** anywhere in the application code (verified via grep). The empty `static/manifest.json` placeholder is overridden by the backend route.
 
-3. **`static/` vs `static/static/` duplication:** Some assets appear in both `static/` and `static/static/` directories (e.g., `favicon.png`, `logo.png`, `splash.png`). Need to confirm which directory is actually served by the backend.
+3. **`static/` vs `static/static/` vs `backend/open_webui/static/`:** Verified — all three directories contain **byte-identical** files (confirmed via md5sum). `STATIC_DIR` resolves to `backend/open_webui/static/`. No build step copies files between directories; all three are independently present in the repository. All three copies must be updated when replacing an asset to remain synchronized.
 
-4. **HER theme splash screen:** The `splash.png` is used for HER theme with CSS inversion. Need to confirm if a separate HER-specific asset is needed.
+4. **HER theme splash screen:** Verified — `splash.png` is used for HER theme with CSS `filter: invert(1)`. Uncertainty remains whether a separate dark-optimized asset is needed beyond `splash-dark.png`.
 
-5. **Backend `WEBUI_NAME` env var behavior:** When `WEBUI_NAME` env var is set to non-`'Open WebUI'`, the backend appends `' (Open WebUI)'` (env.py lines 964–965). This behavior may need to be considered for white labeling.
-
-6. **Translation files:** 50+ locale translation files contain "Open WebUI" strings. Each would need to be reviewed and updated individually.
-
-7. **`static/custom.css` and `static/static/custom.css`:** Both files exist but are empty (0 bytes). May be intended for custom styling overrides.
+5. **`static/custom.css` and `static/static/custom.css`:** Both files exist but are empty (0 bytes). May be intended for custom styling overrides.
 
 ---
 
